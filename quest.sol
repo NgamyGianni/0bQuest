@@ -18,6 +18,8 @@ interface I0bOptions {
 
     function currentGameId() external view returns (uint);
     function Games(uint) external view returns (uint256, uint256, uint256, uint256, uint256, bool, uint256, int256);
+    function users(uint, address) external view returns (uint256, uint8, bool);
+    function userGames(address, uint256) external view returns (uint256);
 }
 
 
@@ -26,6 +28,8 @@ contract questMatic {
     struct Winner{
         uint lastWinAmount;
         uint lastTotalAmount;
+        uint lastGames;
+        uint lastWins;
     }
 
     uint public rewardAmount;
@@ -67,6 +71,30 @@ contract questMatic {
         require(sent, "Failed to send.");
     }
 
+    function getRewardGames() external {
+        Winner storage user = winners[msg.sender];
+
+        (bool win, uint amount) = isWinnerGames(msg.sender);
+        require(win, 'You did not achieve this quest');
+
+        user.lastTotalAmount = amount;
+
+        (bool sent, ) = msg.sender.call{value: 0.01 ether}("");
+        require(sent, "Failed to send.");
+    }
+
+    function getRewardWins() external {
+        Winner storage user = winners[msg.sender];
+
+        (bool win, uint amount) = isWinnerWins(msg.sender);
+        require(win, 'You did not achieve this quest');
+
+        user.lastTotalAmount = amount;
+
+        (bool sent, ) = msg.sender.call{value: 0.01 ether}("");
+        require(sent, "Failed to send.");
+    }
+
     function isWinnerAmount(address _address) public view returns (bool, uint) {
         // played amount
 
@@ -89,6 +117,41 @@ contract questMatic {
         uint tmp = totalWinAmount - user.lastWinAmount;
 
         return (tmp >= 10 ether, totalWinAmount);
+    }
+
+    function isWinnerGames(address _address) public view returns (bool, uint) {
+        // nb games
+
+        //uint totalGames = ObContract.getUserGames(_address).length;
+        Winner storage user = winners[_address];
+        uint totalGames = user.lastGames + 10;
+
+        uint tmp = totalGames - user.lastGames;
+
+
+        uint cpt;
+        
+        if(tmp >= 10){
+            uint cpt;
+            for(uint i=user.lastGames; i < totalGames; i++){
+                (uint256 amount, , ) = ObContract.users(ObContract.userGames(_address, i), _address);
+                if(amount >= 1 ether)   cpt++;
+            }
+        }
+
+        return (tmp >= 10 && cpt >= 10, totalGames);
+    }
+
+    function isWinnerWins(address _address) public view returns (bool, uint) {
+        // nb wins
+
+        //uint totalWins = ObContract.getUserWins(_address).length;
+        Winner storage user = winners[_address];
+        uint totalWins = user.lastWins + 10;
+
+        uint tmp = totalWins - user.lastWins;
+
+        return (tmp >= 10, totalWins);
     }
     
 }
