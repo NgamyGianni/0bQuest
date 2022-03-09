@@ -23,7 +23,7 @@ interface I0bOptions {
 }
 
 
-contract questMatic {
+contract quest {
 
     struct Winner{
         uint lastWinAmount;
@@ -48,6 +48,8 @@ contract questMatic {
     }
 
     function getRewardAmount() external {
+        require(rewardAmount > 10 ether, 'broke');
+
         Winner storage user = winners[msg.sender];
 
         (bool win, uint amount) = isWinnerAmount(msg.sender);
@@ -60,6 +62,8 @@ contract questMatic {
     }
 
     function getRewardWinAmount() external {
+        require(rewardAmount > 10 ether, 'broke');
+
         Winner storage user = winners[msg.sender];
 
         (bool win, uint amount) = isWinnerWinAmount(msg.sender);
@@ -72,24 +76,28 @@ contract questMatic {
     }
 
     function getRewardGames() external {
+        require(rewardAmount > 10 ether, 'broke');
+
         Winner storage user = winners[msg.sender];
 
-        (bool win, uint amount) = isWinnerGames(msg.sender);
+        (bool win, uint games) = isWinnerGames(msg.sender);
         require(win, 'You did not achieve this quest');
 
-        user.lastTotalAmount = amount;
+        user.lastTotalAmount = games;
 
         (bool sent, ) = msg.sender.call{value: 0.01 ether}("");
         require(sent, "Failed to send.");
     }
 
     function getRewardWins() external {
+        require(rewardAmount > 10 ether, 'broke');
+        
         Winner storage user = winners[msg.sender];
 
-        (bool win, uint amount) = isWinnerWins(msg.sender);
+        (bool win, uint wins) = isWinnerWins(msg.sender);
         require(win, 'You did not achieve this quest');
 
-        user.lastTotalAmount = amount;
+        user.lastTotalAmount = wins;
 
         (bool sent, ) = msg.sender.call{value: 0.01 ether}("");
         require(sent, "Failed to send.");
@@ -132,14 +140,16 @@ contract questMatic {
         uint cpt;
         
         if(tmp >= 10){
-            uint cpt;
             for(uint i=user.lastGames; i < totalGames; i++){
-                (uint256 amount, , ) = ObContract.users(ObContract.userGames(_address, i), _address);
-                if(amount >= 1 ether)   cpt++;
+                /*(uint256 amount, , ) = ObContract.users(ObContract.userGames(_address, i), _address);
+                if(amount >= 1 ether)   cpt++;*/
+                cpt++;
             }
+
+            return (tmp >= 10 && cpt >= 10, totalGames);
         }
 
-        return (tmp >= 10 && cpt >= 10, totalGames);
+        return (false, totalGames);
     }
 
     function isWinnerWins(address _address) public view returns (bool, uint) {
@@ -151,7 +161,19 @@ contract questMatic {
 
         uint tmp = totalWins - user.lastWins;
 
-        return (tmp >= 10, totalWins);
+        uint cpt;
+        
+        if(tmp >= 10){
+            for(uint i=user.lastWins; i < totalWins; i++){
+                /*(uint256 amount, , ) = ObContract.users(ObContract.getUserWins(_address)[i], _address);
+                if(amount >= 1 ether)   cpt++;*/
+                cpt++;
+            }
+
+            return (tmp >= 10 && cpt >= 10, totalWins);
+        }
+
+        return (false, totalWins);
     }
     
 }
