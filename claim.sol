@@ -46,6 +46,7 @@ contract claim {
     uint public rewardAmountByGame;
     uint public rewardAmount;
     uint public currentRewardAmount;
+    address public admin;
 
     mapping(uint => int) public nbWinnersByIndex;
     mapping(address => Winner) public winners;
@@ -54,19 +55,25 @@ contract claim {
     I0bOptions public ObContract;
     IERC20 public ObToken;
 
+    event AddReward(address indexed admin, uint amount);
+    event GetRewardGames(address indexed from, uint amount);
+
     constructor(){
-        //ObContract = 0;
-        ObToken = IERC20(0xB57ee0797C3fc0205714a577c02F7205bB89dF30);
-        rewardAmountByGame = 1 * (10**18);
+        ObContract = I0bOptions(0x8862090A79412D034d9Fb8C9DBFd3194C8D2a2EE);
+        ObToken = IERC20(0xd9145CCE52D386f254917e481eB44e9943F39138);
+        rewardAmountByGame = 10 * (10**18);
+        admin = msg.sender;
     }
 
     function addReward() external payable {
         uint amount = ObToken.allowance(msg.sender, address(this));
 
-        require(ObToken.transferFrom(msg.sender, address(this), amount), 'Failed to send');
+        require(ObToken.transferFrom(msg.sender, address(this), amount), 'Failed to send.');
 
         rewardAmount += amount;
         currentRewardAmount += amount;
+
+        emit AddReward(msg.sender, amount);
     }
 
     function getRewardGames() external {
@@ -76,45 +83,47 @@ contract claim {
         (bool win, uint games) = isWinnerGames(msg.sender);
         require(win, "You did not won a game since your last withdrawal");
 
-        uint tmp = games - user.lastGameLength;
+        uint pendingLength = games - user.lastGameLength;
         user.lastGameLength = games;
         
-        if(rewardAmount < tmp * (10**18)){
+        if(rewardAmount < pendingLength * (10**18)){
             require(rewardAmount > 0, "The contract is empty");
 
-            bool txt = ObToken.transfer(msg.sender, rewardAmount);
-            require(txt, 'Failed to send.');
+            bool t = ObToken.transfer(msg.sender, rewardAmount);
+            require(t, 'Failed to send.');
 
             currentRewardAmount -= rewardAmount;
         }else{
             require(rewardAmount > 0, "The contract is empty");
 
-            bool txt = ObToken.transfer(msg.sender, tmp * (10**18));
-            require(txt, 'Failed to send.');
+            bool t = ObToken.transfer(msg.sender, pendingLength * (10**18));
+            require(t, 'Failed to send.');
 
-            currentRewardAmount -= tmp * (10**18);
+            currentRewardAmount -= pendingLength * (10**18);
         }
+
+        emit GetRewardGames(msg.sender, pendingLength * (10**18));
     }
 
     function isWinnerGames(address _address) public view returns (bool, uint) {
         // nb games
 
-        //uint totalGames = ObContract.getUserGames(_address).length;
+        uint totalGames = ObContract.getUserGames(_address).length;
         Winner storage user = winners[_address];
-        uint totalGames = user.lastGameLength + 10;
+        //uint totalGames = user.lastGameLength + 10;
 
-        uint tmp = totalGames - user.lastGameLength;
+        uint pendingLength = totalGames - user.lastGameLength;
 
         uint cpt;
         
-        if(tmp > 0){
+        if(pendingLength > 0){
             for(uint i=user.lastGameLength; i < totalGames; i++){
-                /*(uint256 amount, , ) = ObContract.users(ObContract.userGames(_address, i), _address);
-                if(amount >= 1 ether)   cpt++;*/
-                cpt++;
+                (uint256 amount, , ) = ObContract.users(ObContract.userGames(_address, i), _address);
+                if(amount >= 1 ether)   cpt++;
+                //cpt++;
             }
 
-            return (tmp > 0 && cpt > 0, totalGames);
+            return (pendingLength > 0 && cpt > 0, totalGames);
         }
 
         return (false, totalGames);
