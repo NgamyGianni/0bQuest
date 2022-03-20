@@ -81,19 +81,19 @@ contract claim {
         Winner storage user = winners[msg.sender];
 
         (bool win, uint games, uint cpt) = isWinnerGames(msg.sender);
-        require(win, "You did not won a game since your last withdrawal");
+        require(win, "You did not won a game since your last withdrawal.");
 
         user.lastGameLength = games;
         
         if(rewardAmount < cpt * rewardAmountByGame){
-            require(rewardAmount > 0, "The contract is empty");
+            require(rewardAmount > 0, "The contract is empty.");
 
             bool t = ObToken.transfer(msg.sender, rewardAmount);
             require(t, 'Failed to send.');
 
             currentRewardAmount -= rewardAmount;
         }else{
-            require(rewardAmount > 0, "The contract is empty");
+            require(rewardAmount > 0, "The contract is empty.");
 
             bool t = ObToken.transfer(msg.sender, cpt * rewardAmountByGame);
             require(t, 'Failed to send.');
