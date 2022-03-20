@@ -59,8 +59,8 @@ contract claim {
     event GetRewardGames(address indexed from, uint amount);
 
     constructor(){
-        ObContract = I0bOptions(0xd9145CCE52D386f254917e481eB44e9943F39138);
-        ObToken = IERC20(0x358AA13c52544ECCEF6B0ADD0f801012ADAD5eE3);
+        ObContract = I0bOptions(0x5A86858aA3b595FD6663c2296741eF4cd8BC4d01);
+        ObToken = IERC20(0x93f8dddd876c7dBE3323723500e83E202A7C96CC);
         rewardAmountByGame = 10 * (10**18);
         admin = msg.sender;
     }
@@ -81,7 +81,7 @@ contract claim {
         Winner storage user = winners[msg.sender];
 
         (bool win, uint games, uint cpt) = isWinnerGames(msg.sender);
-        require(win, "You did not won a game since your last withdrawal.");
+        require(win, "No game available.");
 
         user.lastGameLength = games;
         
@@ -105,7 +105,6 @@ contract claim {
     }
 
     function isWinnerGames(address _address) public view returns (bool, uint, uint) {
-        // nb games
 
         uint totalGames = ObContract.getUserGames(_address).length;
         Winner storage user = winners[_address];
@@ -115,6 +114,7 @@ contract claim {
         uint cpt;
         
         if(pendingLength > 0){
+            
             for(uint i=user.lastGameLength; i < totalGames; i++){
                 (uint256 amount, , ) = ObContract.users(ObContract.userGames(_address, i), _address);
                 if(amount >= 1 ether)   cpt++;
