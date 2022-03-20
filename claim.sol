@@ -59,8 +59,8 @@ contract claim {
     event GetRewardGames(address indexed from, uint amount);
 
     constructor(){
-        ObContract = I0bOptions(0x8862090A79412D034d9Fb8C9DBFd3194C8D2a2EE);
-        ObToken = IERC20(0xd9145CCE52D386f254917e481eB44e9943F39138);
+        ObContract = I0bOptions(0xd9145CCE52D386f254917e481eB44e9943F39138);
+        ObToken = IERC20(0x358AA13c52544ECCEF6B0ADD0f801012ADAD5eE3);
         rewardAmountByGame = 10 * (10**18);
         admin = msg.sender;
     }
@@ -80,13 +80,12 @@ contract claim {
 
         Winner storage user = winners[msg.sender];
 
-        (bool win, uint games) = isWinnerGames(msg.sender);
+        (bool win, uint games, uint cpt) = isWinnerGames(msg.sender);
         require(win, "You did not won a game since your last withdrawal");
 
-        uint pendingLength = games - user.lastGameLength;
         user.lastGameLength = games;
         
-        if(rewardAmount < pendingLength * (10**18)){
+        if(rewardAmount < cpt * rewardAmountByGame){
             require(rewardAmount > 0, "The contract is empty");
 
             bool t = ObToken.transfer(msg.sender, rewardAmount);
@@ -96,21 +95,20 @@ contract claim {
         }else{
             require(rewardAmount > 0, "The contract is empty");
 
-            bool t = ObToken.transfer(msg.sender, pendingLength * (10**18));
+            bool t = ObToken.transfer(msg.sender, cpt * rewardAmountByGame);
             require(t, 'Failed to send.');
 
-            currentRewardAmount -= pendingLength * (10**18);
+            currentRewardAmount -= cpt * rewardAmountByGame;
         }
 
-        emit GetRewardGames(msg.sender, pendingLength * (10**18));
+        emit GetRewardGames(msg.sender, cpt * rewardAmountByGame);
     }
 
-    function isWinnerGames(address _address) public view returns (bool, uint) {
+    function isWinnerGames(address _address) public view returns (bool, uint, uint) {
         // nb games
 
         uint totalGames = ObContract.getUserGames(_address).length;
         Winner storage user = winners[_address];
-        //uint totalGames = user.lastGameLength + 10;
 
         uint pendingLength = totalGames - user.lastGameLength;
 
@@ -120,13 +118,12 @@ contract claim {
             for(uint i=user.lastGameLength; i < totalGames; i++){
                 (uint256 amount, , ) = ObContract.users(ObContract.userGames(_address, i), _address);
                 if(amount >= 1 ether)   cpt++;
-                //cpt++;
             }
 
-            return (pendingLength > 0 && cpt > 0, totalGames);
+            return (pendingLength > 0 && cpt > 0, totalGames, cpt);
         }
 
-        return (false, totalGames);
+        return (false, totalGames, 0);
     }
     
 }
